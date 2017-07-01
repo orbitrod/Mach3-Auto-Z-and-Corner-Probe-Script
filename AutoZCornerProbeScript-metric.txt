@@ -32,16 +32,16 @@ Sub Main
 		Exit Function
 	End If
 
-	If isImperial = False Then
-		ProbeFeedrate = ProbeFeedrate * 25.4
-		XProbeDistance = XProbeDistance * 25.4
-		YProbeDistance = YProbeDistance * 25.4
-		ZProbeDistance = ZProbeDistance * 25.4
-		ZTravelHeight = ZTravelHeight * 25.4
-		ZLiftHeight = ZLiftHeight * 25.4
-		TouchPlateWidth = TouchPlateWidth * 25.4
-		TouchPlateHeight = TouchPlateHeight * 25.4
-	End If
+'	If isImperial = False Then
+'		ProbeFeedrate = ProbeFeedrate * 25.4
+'		XProbeDistance = XProbeDistance * 25.4
+'		YProbeDistance = YProbeDistance * 25.4
+'		ZProbeDistance = ZProbeDistance * 25.4
+'		ZTravelHeight = ZTravelHeight * 25.4
+'		ZLiftHeight = ZLiftHeight * 25.4
+'		TouchPlateWidth = TouchPlateWidth * 25.4
+'		TouchPlateHeight = TouchPlateHeight * 25.4
+'	End If
 
 
 	If NoPrompt = False Then
