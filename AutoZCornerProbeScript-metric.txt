@@ -11,7 +11,7 @@ Sub Main
 	ProbeX = False 				' By default, do not probe/zero X (change this to True to change the default)
 	ProbeY = False 				' By default, do not probe/zero Y (change this to True to change the default)
 
-	ProbeFeedrate = 10 			'IPM, Anything from 5-12 IPM will likely work well
+	ProbeFeedrate = 30 			'IPM, Anything from 5-12 IPM will likely work well
 
 	TouchPlateHeight = 1  			'CRP Touchplate is 1" nominal, can adjust this number to calibrate (usually not required)
 	TouchPlateWidth = 2.205 		'Width of Touchplate is 2.205" (56mm) wide
