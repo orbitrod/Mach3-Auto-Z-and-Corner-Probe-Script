@@ -206,8 +206,8 @@ Sub AutoZeroMachine()
 End Sub
 
 Function DlgCheckAxis( ControlID$, Action%, SuppValue%)
-	DlgValue "ChkBoxZAxis", 1
-	DlgEnable "ChkBoxZAxis",0
+	'DlgValue "ChkBoxZAxis", 1
+	DlgEnable "ChkBoxZAxis",1
 
 	If DlgValue("ChkBoxPauseProbe") = 1  Then
 		PauseProbe = True
