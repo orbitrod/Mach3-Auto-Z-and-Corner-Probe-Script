@@ -15,11 +15,11 @@ Sub Main
 
 	TouchPlateHeight = 0  			'CRP Touchplate is 1" nominal, can adjust this number to calibrate (usually not required)
 	TouchPlateWidth = 2.205 		'Width of Touchplate is 2.205" (56mm) wide
-	XProbeDistance = 2 			'How long to probe X Axis (inches)
-	YProbeDistance = 2 			'How long to probe Y Axis (inches)
-	ZProbeDistance = 2 			'How long to probe Z Axis (inches)
-	ZTravelHeight = TouchPlateHeight +.125	'How high to lift tool while probing X and Y (inches)
-	ZLiftHeight = TouchPlateHeight + .5 	'How high to lift tool after script is complete (inches)
+	XProbeDistance = 10			'How long to probe X Axis (inches)
+	YProbeDistance = 10			'How long to probe Y Axis (inches)
+	ZProbeDistance = 10 			'How long to probe Z Axis (inches)
+	ZTravelHeight = TouchPlateHeight + 5	'How high to lift tool while probing X and Y (inches)
+	ZLiftHeight = TouchPlateHeight + 10 	'How high to lift tool after script is complete (inches)
 
 
 	ToolDiameter = GetOEMDro(105)
