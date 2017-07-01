@@ -1,0 +1,285 @@
+' Auto Z and Corner Finding Touch Plate Script version 1.2 - CNC Router Parts 2017
+Public TouchPlateHeight, ProbeFeedRate, XProbeDistance, YProbeDistance, ZProbeDistance, TouchPlateWidth, XProbeDirection, YProbeDirection, ZTravelHeight, ZLiftHeight, ToolDiameter As Double
+Public ProbeX, ProbeY, PauseProbe, Abort, isImperial, isImperialUOM As Boolean
+
+Sub Main
+
+	NoPrompt = False 			' False = Use UI to Prompt User for corner finding options
+	PauseProbe = True 			' True = Prompt user to rotate tool before X and Y axis probing
+	WCSOrigin = 0 				' Default Corner 0=Left/Front 1=Left/Rear 2=Right/Front 3=Right/Rear
+
+	ProbeX = False 				' By default, do not probe/zero X (change this to True to change the default)
+	ProbeY = False 				' By default, do not probe/zero Y (change this to True to change the default)
+
+	ProbeFeedrate = 10 			'IPM, Anything from 5-12 IPM will likely work well
+
+	TouchPlateHeight = 1  			'CRP Touchplate is 1" nominal, can adjust this number to calibrate (usually not required)
+	TouchPlateWidth = 2.205 		'Width of Touchplate is 2.205" (56mm) wide
+	XProbeDistance = 2 			'How long to probe X Axis (inches)
+	YProbeDistance = 2 			'How long to probe Y Axis (inches)
+	ZProbeDistance = 2 			'How long to probe Z Axis (inches)
+	ZTravelHeight = TouchPlateHeight +.125	'How high to lift tool while probing X and Y (inches)
+	ZLiftHeight = TouchPlateHeight + .5 	'How high to lift tool after script is complete (inches)
+
+
+	ToolDiameter = GetOEMDro(105)
+	isImperial = GetOEMLED(801)
+	isImperialUOM = isImperial
+	Abort = True
+
+	If (GetOEMLED(800)) Then
+		Message ("Error: Emergency Mode is Active ")
+		Exit Function
+	End If
+
+	If isImperial = False Then
+		ProbeFeedrate = ProbeFeedrate * 25.4
+		XProbeDistance = XProbeDistance * 25.4
+		YProbeDistance = YProbeDistance * 25.4
+		ZProbeDistance = ZProbeDistance * 25.4
+		ZTravelHeight = ZTravelHeight * 25.4
+		ZLiftHeight = ZLiftHeight * 25.4
+		TouchPlateWidth = TouchPlateWidth * 25.4
+		TouchPlateHeight = TouchPlateHeight * 25.4
+	End If
+
+
+	If NoPrompt = False Then
+		Begin Dialog DlgCheckAxis 15,32,215,90,"Select Axes to Auto Zero",.DlgCheckAxis
+		OKButton 140,8,40,14
+		CancelButton 140,30,40,14
+		GroupBox 10,3,45,50,"",.GroupAxesChk
+		CheckBox 12,10,30,8,"Z Axis",.ChkBoxZAxis
+		CheckBox 12,26,30,8,"X Axis",.ChkBoxXAxis
+		CheckBox 125,50,80,8,"Pause Between Axes",.ChkBoxPauseProbe
+		CheckBox 12,42,30,8,"Y Axis",.ChkBoxYAxis
+		GroupBox 62,3,55,68,"",.GroupAxesChk
+
+		OptionGroup .grp1
+		OptionButton 65,10,50,8,"Left/Front",.ComboLeftFront
+		OptionButton 65,26,50,8,"Left/Rear",.ComboLeftRear
+		OptionButton 65,42,50,8,"Right/Front",.ComboRightFront
+		OptionButton 65,58,50,8,"Right/Rear",.ComboRightRear
+
+		Text 16,75,100,100,"Tool Diameter: ",.TextToolDiaLabel
+		TextBox 69,75,30,10,.TextToolDiameter
+
+		OptionGroup .grp2
+		OptionButton 104,75,35,10,"inches",.UnitImperial
+		OptionButton 139,75,35,10,"mm",.UnitMetric
+
+		End Dialog
+
+		Dim Dlg1 As DlgCheckAxis
+
+		Dlg1.TextToolDiameter = ""+ToolDiameter
+		Dlg1.grp1 = WCSOrigin 'default is left/front
+		Dlg1.grp2 = 0 'default is inches (Imperial)
+		If isImperial = False Then
+			Dlg1.grp2 = 1
+		End If
+		Dlg1.ChkBoxXAxis = ProbeX
+		Dlg1.ChkBoxYAxis = ProbeY
+		Dlg1.ChkBoxPauseProbe = PauseProbe
+		Button = Dialog ( Dlg1 )
+		ProbeX = Dlg1.ChkBoxXAxis
+		ProbeY = Dlg1.ChkBoxYAxis
+	Else
+		Select Case WCSOrigin
+			Case 0
+				XProbeDirection = 1
+				YProbeDirection = 1
+			Case 1
+				XProbeDirection = 1
+				YProbeDirection = -1
+			Case 2
+				XProbeDirection = -1
+				YProbeDirection = -1
+			Case 3
+				XProbeDirection = -1
+				YProbeDirection = 1
+		End Select
+		Abort = false
+	End If
+
+	If ( ProbeX Or ProbeY ) Then
+		If Not NoPrompt Then
+			If IsNumeric(Dlg1.TextToolDiameter) Then
+				ToolDiameter = CDbl(Dlg1.TextToolDiameter)
+				If (isImperial And Dlg1.grp2 = 1) Then
+					ToolDiameter = ToolDiameter/25.4
+				End If
+				If (Not isImperial And Dlg1.grp2 = 0) Then
+					ToolDiameter = ToolDiameter*25.4
+				End If
+			Else
+				Code "(Invalid Tool Diameter)"
+				Abort = true
+			End If
+		End If
+
+		ToolDiameterImperial = ToolDiameter
+		If Not isImperial Then
+			ToolDiameterImperial = ToolDiameter/25.4
+		End	If
+		If (Not Abort And ToolDiameterImperial <= 0) Then
+			Code "(Tool Diameter is too small)"
+			Abort = true
+		End If
+		If (Not Abort And ToolDiameterImperial > 2) Then
+			Code "(Tool Diameter is too large)"
+			Abort = true
+		End If
+
+		If (Not Abort And Not NoPrompt) Then
+			SetOEMDro(105,ToolDiameter)
+		End If
+	End If
+
+	If Not Abort Then
+		Message ("Auto Tool Sequence Activating...")
+		AutoZeroMachine
+	End If
+End Sub
+
+Sub AutoZeroMachine()
+	If GetOEMLED(825) <> 0 Then 'Check to see if the touch plate is already activated
+	Code "(Touch plate is already activated, check connection and try again)"
+	Else
+	FeedCurrent = GetOemDRO(818) 'Get the current settings
+	XCurrent = GetDro(0)
+	YCurrent = GetDro(1)
+	ZCurrent = GetDro(2)
+
+	ToolRad = ToolDiameter/2
+
+	Code "G4 P1" 'Pause 1sec
+	Code "F" &ProbeFeedRate
+
+	'Always probe z
+	ZNew = ZCurrent - ZProbeDistance
+	Code "G31 Z" &ZNew
+	While IsMoving()
+	Wend
+	SetDro(2,TouchPlateHeight)
+	Code "G0 Z" &ZTravelHeight  'rapid move back off plate enough to travel
+
+	If ProbeX Then
+		If PauseProbe Then
+			MsgBox "Align Tool Flutes for X-Axis Travel and Press OK"
+		End If
+		XNew = XCurrent + (XProbeDistance * XProbeDirection) 'probe vector
+		Code "G31 X" &XNew
+		While IsMoving() 'wait for the move to finish
+		Wend
+		SetDro(0,(TouchPlateWidth-ToolRad)*XProbeDirection)
+
+		If XProbeDirection = 1 Then
+			Code "G0 X" &(TouchPlateWidth/2)-ToolRad 'Center the tool on touch plate
+		Else
+			Code "G0 X" &((TouchPlateWidth/2)-ToolRad)*-1 'Center the tool on touch plate
+		End If
+	End If
+
+ 	If ProbeY Then
+		If PauseProbe Then
+			MsgBox "Align Tool Flutes for Y-Axis Travel and Press OK"
+		End If
+		YNew = YCurrent + (YProbeDistance * YProbeDirection) 'probe vector
+		Code "G31 Y" &YNew
+		While IsMoving() 'wait for the move to finish
+		Wend
+		SetDro(1,(TouchPlateWidth-ToolRad)*YProbeDirection)
+
+		If YProbeDirection = 1 Then
+			Code "G0 Y" &(TouchPlateWidth/2)-ToolRad 'Center the tool on touch plate
+		Else
+			Code "G0 Y" &((TouchPlateWidth/2)-ToolRad)*-1 'Center the tool on touch plate
+		End If
+	End If
+
+	Code "G0 Z" &ZLiftHeight
+	Code "F" &FeedCurrent 'restore starting feed rate
+	Message ("Auto Tool Sequence Complete.")
+
+	End If
+End Sub
+
+Function DlgCheckAxis( ControlID$, Action%, SuppValue%)
+	DlgValue "ChkBoxZAxis", 1
+	DlgEnable "ChkBoxZAxis",0
+
+	If DlgValue("ChkBoxPauseProbe") = 1  Then
+		PauseProbe = True
+	Else
+		PauseProbe = False
+
+	End If
+
+	If DlgValue("ChkBoxYAxis") = 1 Or DlgValue("ChkBoxXAxis") = 1 Then
+		DlgEnable "ComboLeftFront",1
+		DlgEnable "ComboLeftRear",1
+		DlgEnable "ComboRightFront",1
+		DlgEnable "ComboRightRear",1
+		DlgEnable "ChkBoxPauseProbe",1
+		DlgEnable "TextToolDiameter",1
+		DlgEnable "TextToolDiaLabel",1
+		DlgEnable "UnitImperial",1
+		DlgEnable "UnitMetric",1
+	Else
+		DlgEnable "ComboLeftFront",0
+		DlgEnable "ComboLeftRear",0
+		DlgEnable "ComboRightFront",0
+		DlgEnable "ComboRightRear",0
+		DlgEnable "ChkBoxPauseProbe",0
+		DlgEnable "TextToolDiameter",0
+		DlgEnable "TextToolDiaLabel",0
+		DlgEnable "UnitImperial",0
+		DlgEnable "UnitMetric",0
+	End If
+
+	If DlgValue("ChkBoxXAxis") = 1  Then
+		ProbeX = True
+	Else
+		ProbeX = False
+	End If
+
+	If DlgValue("ChkBoxYAxis") = 1  Then
+		ProbeY = True
+	Else
+		ProbeY = False
+	End If
+
+	If Action = 3 And ControlID$ = "TextToolDiameter" And Not IsNumeric(DlgText("TextToolDiameter")) Then
+		DlgText "TextToolDiameter",""+ToolDiameter
+	End If
+
+	If Action = 2 Then
+		If ControlID$ = "UnitMetric" And isImperialUOM Then
+			ToolDiameter = CDbl(DlgText("TextToolDiameter"))*25.4
+			DlgText "TextToolDiameter",""+ToolDiameter
+			isImperialUOM = false
+		End If
+		If ControlID$ = "UnitImperial" And Not isImperialUOM Then
+			ToolDiameter = CDbl(DlgText("TextToolDiameter"))/25.4
+			DlgText "TextToolDiameter",""+ToolDiameter
+			isImperialUOM = true
+		End If
+		If ControlID$ = "Ok" Then
+			Abort = False
+			If DlgValue ("ComboLeftFront") = 1 Then
+				XProbeDirection = 1
+				YProbeDirection = 1
+			ElseIf DlgValue ("ComboLeftRear") = 1 Then
+				XProbeDirection = 1
+				YProbeDirection = -1
+			ElseIf DlgValue ("ComboRightRear") = 1 Then
+				XProbeDirection = -1
+				YProbeDirection = -1
+			ElseIf DlgValue ("ComboRightFront") = 1 Then
+				XProbeDirection = -1
+				YProbeDirection = 1
+			End If
+		End If
+	End If
+End Function
