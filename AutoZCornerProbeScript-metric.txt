@@ -1,6 +1,6 @@
 ' Auto Z and Corner Finding Touch Plate Script version 1.2 - CNC Router Parts 2017
 Public TouchPlateHeight, ProbeFeedRate, XProbeDistance, YProbeDistance, ZProbeDistance, TouchPlateWidth, XProbeDirection, YProbeDirection, ZTravelHeight, ZLiftHeight, ToolDiameter As Double
-Public ProbeX, ProbeY, PauseProbe, Abort, isImperial, isImperialUOM As Boolean
+Public ProbeZ, ProbeX, ProbeY, PauseProbe, Abort, isImperial, isImperialUOM As Boolean
 
 Sub Main
 
@@ -8,6 +8,7 @@ Sub Main
 	PauseProbe = True 			' True = Prompt user to rotate tool before X and Y axis probing
 	WCSOrigin = 0 				' Default Corner 0=Left/Front 1=Left/Rear 2=Right/Front 3=Right/Rear
 
+	ProbeZ = False 				' By default, do not probe/zero Z (change this to True to change the default)
 	ProbeX = False 				' By default, do not probe/zero X (change this to True to change the default)
 	ProbeY = False 				' By default, do not probe/zero Y (change this to True to change the default)
 
@@ -157,12 +158,21 @@ Sub AutoZeroMachine()
 	Code "F" &ProbeFeedRate
 
 	'Always probe z
-	ZNew = ZCurrent - ZProbeDistance
-	Code "G31 Z" &ZNew
-	While IsMoving()
-	Wend
-	SetDro(2,TouchPlateHeight)
-	Code "G0 Z" &ZTravelHeight  'rapid move back off plate enough to travel
+	'ZNew = ZCurrent - ZProbeDistance
+	'Code "G31 Z" &ZNew
+	'While IsMoving()
+	'Wend
+	'SetDro(2,TouchPlateHeight)
+	'Code "G0 Z" &ZTravelHeight  'rapid move back off plate enough to travel
+	
+	If ProbeZ Then
+		ZNew = ZCurrent - ZProbeDistance
+		Code "G31 Z" &ZNew
+		While IsMoving()
+		Wend
+		SetDro(2,TouchPlateHeight)
+		Code "G0 Z" &ZTravelHeight  'rapid move back off plate enough to travel
+	End If
 
 	If ProbeX Then
 		If PauseProbe Then
