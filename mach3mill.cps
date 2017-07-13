@@ -463,6 +463,7 @@ function onSection() {
     writeBlock(
       sOutput.format(tool.spindleRPM), mFormat.format(tool.clockwise ? 3 : 4)
     );
+    onDwell(2); // 2 second dwell time after spindle starts, to allow it enough time to get up to speed
   }
 
   // wcs
