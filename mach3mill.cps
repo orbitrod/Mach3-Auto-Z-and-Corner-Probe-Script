@@ -987,27 +987,27 @@ function onClose() {
 
   onCommand(COMMAND_COOLANT_OFF);
 
-  if (properties.useG28) {
-    writeBlock(gFormat.format(28), gAbsIncModal.format(91), "Z" + xyzFormat.format(machineConfiguration.getRetractPlane())); // retract
-    zOutput.reset();
-  }
-
-  setWorkPlane(new Vector(0, 0, 0)); // reset working plane
-
-  if (!machineConfiguration.hasHomePositionX() && !machineConfiguration.hasHomePositionY()) {
-    if (properties.useG28) {
-      writeBlock(gFormat.format(28), gAbsIncModal.format(91), "X" + xyzFormat.format(0), "Y" + xyzFormat.format(0)); // return to home
-    }
-  } else {
-    var homeX;
-    if (machineConfiguration.hasHomePositionX()) {
-      homeX = "X" + xyzFormat.format(machineConfiguration.getHomePositionX());
-    }
-    var homeY;
-    if (machineConfiguration.hasHomePositionY()) {
-      homeY = "Y" + xyzFormat.format(machineConfiguration.getHomePositionY());
-    }
-    writeBlock(gAbsIncModal.format(90), gFormat.format(53), gMotionModal.format(0), homeX, homeY);
+//  if (properties.useG28) {
+//    writeBlock(gFormat.format(28), gAbsIncModal.format(91), "Z" + xyzFormat.format(machineConfiguration.getRetractPlane())); // retract
+//    zOutput.reset();
+//  }
+//
+//  setWorkPlane(new Vector(0, 0, 0)); // reset working plane
+//
+//  if (!machineConfiguration.hasHomePositionX() && !machineConfiguration.hasHomePositionY()) {
+//    if (properties.useG28) {
+//      writeBlock(gFormat.format(28), gAbsIncModal.format(91), "X" + xyzFormat.format(0), "Y" + xyzFormat.format(0)); // return to home
+//    }
+//  } else {
+//    var homeX;
+//    if (machineConfiguration.hasHomePositionX()) {
+//      homeX = "X" + xyzFormat.format(machineConfiguration.getHomePositionX());
+//    }
+//    var homeY;
+//    if (machineConfiguration.hasHomePositionY()) {
+//      homeY = "Y" + xyzFormat.format(machineConfiguration.getHomePositionY());
+//    }
+//    writeBlock(gAbsIncModal.format(90), gFormat.format(53), gMotionModal.format(0), homeX, homeY);
   }
 
   onImpliedCommand(COMMAND_END);
