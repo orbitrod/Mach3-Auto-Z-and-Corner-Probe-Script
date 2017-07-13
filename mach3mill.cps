@@ -1,25 +1,28 @@
 /**
-  Copyright (C) 2012-2015 by Autodesk, Inc.
+  Copyright (C) 2012-2016 by Autodesk, Inc.
   All rights reserved.
 
   Mach3Mill post processor configuration.
 
-  $Revision: 40469 $
-  $Date: 2015-12-15 11:50:07 +0100 (ti, 15 dec 2015) $
+  $Revision: 41369 65a1f6cb57e3c7389dc895ea10958fc2f7947b0d $
+  $Date: 2017-03-20 14:12:44 $
   
   FORKID {AE2102AB-B86A-4aa7-8E9B-F0B6935D4E9F}
 */
 
 description = "Generic Mach3Mill";
-vendor = "Autodesk, Inc.";
-vendorUrl = "http://www.autodesk.com";
-legal = "Copyright (C) 2012-2015 by Autodesk, Inc.";
+vendor = "Artsoft";
+vendorUrl = "http://www.machsupport.com";
+legal = "Copyright (C) 2012-2016 by Autodesk, Inc.";
 certificationLevel = 2;
 minimumRevision = 24000;
+
+longDescription = "Generic milling post for Mach3.";
 
 extension = "tap";
 setCodePage("ascii");
 
+capabilities = CAPABILITY_MILLING;
 tolerance = spatial(0.002, MM);
 
 minimumChordLength = spatial(0.01, MM);
@@ -44,7 +47,7 @@ properties = {
   sequenceNumberIncrement: 5, // increment for sequence numbers
   optionalStop: true, // optional stop
   separateWordsWithSpace: true, // specifies that the words should be separated with a white space
-  useRadius: true, // specifies that arcs should be output using the radius (R word) instead of the I, J, and K words.
+  useRadius: false, // specifies that arcs should be output using the radius (R word) instead of the I, J, and K words.
   dwellInSeconds: true // specifies the unit for dwelling: true:seconds and false:milliseconds.
 };
 
@@ -122,6 +125,9 @@ function writeComment(text) {
 }
 
 function onOpen() {
+  if (properties.useRadius) {
+    maximumCircularSweep = toRad(90); // avoid potential center calculation errors for CNC
+  }
 
   if (false) {
     var aAxis = createAxis({coordinate:0, table:true, axis:[-1, 0, 0], cyclic:true, preference:1});
@@ -231,6 +237,15 @@ function onOpen() {
             return;
           }
         }
+      }
+    }
+  }
+
+  if ((getNumberOfSections() > 0) && (getSection(0).workOffset == 0)) {
+    for (var i = 0; i < getNumberOfSections(); ++i) {
+      if (getSection(i).workOffset > 0) {
+        error(localize("Using multiple work offsets is not possible if the initial work offset is 0."));
+        return;
       }
     }
   }
@@ -690,8 +705,10 @@ function onCyclePoint(x, y, z) {
       writeBlock(
         gRetractModal.format(98), gAbsIncModal.format(90), gCycleModal.format(76),
         getCommonCycle(x, y, z, cycle.retract),
+        "I" + xyzFormat.format(cycle.shift),
+        "J" + xyzFormat.format(0),
         "P" + secFormat.format(P),
-        "Q" + xyzFormat.format(cycle.shift),
+        // "Q" + xyzFormat.format(cycle.shift),
         feedOutput.format(F)
       );
       break;
@@ -807,11 +824,11 @@ function onLinear(_x, _y, _z, feed) {
       switch (radiusCompensation) {
       case RADIUS_COMPENSATION_LEFT:
         pOutput.reset();
-        writeBlock(gMotionModal.format(1), pOutput.format(tool.diameter), gFormat.format(41), x, y, z, f);
+        writeBlock(gMotionModal.format(1), gFormat.format(41), x, y, z, f, pOutput.format(tool.diameter));
         break;
       case RADIUS_COMPENSATION_RIGHT:
         pOutput.reset();
-        writeBlock(gMotionModal.format(1), pOutput.format(tool.diameter), gFormat.format(42), x, y, z, f);
+        writeBlock(gMotionModal.format(1), gFormat.format(42), x, y, z, f, pOutput.format(tool.diameter));
         break;
       default:
         writeBlock(gMotionModal.format(1), gFormat.format(40), x, y, z, f);
